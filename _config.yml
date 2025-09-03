@@ -1,0 +1,25 @@
+title: Knowledge Base
+description: Doc sample
+baseurl: "" # 如果你的 Pages 用的是子路径，比如 /myrepo，就写 "/myrepo"
+url: "https://aquasky111.github.io/"
+
+# let Jekyll read notes，and output as webpage
+collections:
+  notes:
+    output: true
+    permalink: /notes/:name/
+
+# GitHub Pages default plugin
+plugins:
+  - jekyll-seo-tag
+  - jekyll-feed
+
+theme: null   # not using default theme，using own style
+markdown: kramdown
+
+# Navigation（Optional）
+nav:
+  - name: 首页
+    url: /
+  - name: 全部笔记
+    url: /notes.html

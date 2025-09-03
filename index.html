@@ -1,64 +1,54 @@
-<!DOCTYPE html>
-<html lang="zh-CN">
-	<head>
-		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8"/>
-		<title>My Page</title>
+---
+layout: default
+title: Front Page
+---
 
-		<!-- Latest compiled and minified CSS -->
-		<link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
-		<link href="./css/main.css" rel="stylesheet" type="text/css"/>
-	</head>
-	<body>
-		<div class="bgimg-1">
-		  <div class="caption">
-		    <span class="border">Connecting the World</span>
-		  </div>
-		</div>
+<section class="hero">
+  <h1>{{ site.title }}</h1>
+  <p class="subtitle">{{ site.description }}</p>
 
-		<div class="first-des">
-		  <h2 class="text-center">EXPLORING FROM A SCREEN</h2>
-		</div>
+  <div class="search">
+    <input id="search-input" type="text" placeholder="Search All Markdown ..." aria-label="Search">
+    <ul id="results"></ul>
+  </div>
+</section>
 
-		<div class="bgimg-2">
-		  <div class="caption caption-high caption-left">
-		    <span class="border-light caption-trans"></span>
-		  </div>
-		</div>
+<section class="categories">
+  <h2>Category</h2>
+  <div class="chips">
+    <a class="chip" href="/notes.html">All</a>
+    {%- assign cats = site.notes | map: "category" | uniq | sort -%}
+    {%- for c in cats -%}
+      {%- if c and c != "" -%}
+        {%- assign count = site.notes | where: "category", c | size -%}
+        <a class="chip" href="/notes.html#cat-{{ c | slugify }}">{{ c }} ({{ count }})</a>
+      {%- endif -%}
+    {%- endfor -%}
+  </div>
+</section>
 
-		<div class="position-relative">
-		  <div class="mid-des">
-		    <h2>AUTOMATE WORK</h2>
-		  </div>
-		</div>
+<section class="grid">
+  {%- assign latest = site.notes | sort: "date" | reverse -%}
+  {%- for note in latest limit:12 -%}
+    <a class="card" href="{{ note.url | relative_url }}">
+      <h3>{{ note.title }}</h3>
+      <p class="muted">
+        {{ note.category }} ·
+        {{ note.date | date: "%Y-%m-%d" }}
+      </p>
+      <p>{{ note.excerpt | strip_html | strip_newlines | truncate: 120 }}</p>
+    </a>
+  {%- endfor -%}
+</section>
 
-		<div class="bgimg-3">
-		  <div class="caption caption-high">
-		    <span class="border-light caption-trans"></span>
-		  </div>
-		</div>
-
-		<div class="position-relative">
-		  <div class="mid-des">
-		    <h2>MAKE LIFE EASIER</h2>
-		  </div>
-		</div>
-
-		<div class="bgimg-4">
-		  <div class="caption caption-high">
-		    <span class="border-light caption-trans"></span>
-		  </div>
-		</div>
-		
-		<div class="position-relative">
-			<div class="mid-des">
-			  <h2>A BETTER WORLD</h2>
-			</div>
-		  </div>
-  
-		  <div class="bgimg-5">
-			<div class="caption caption-high">
-			  <span class="border"></span>
-			</div>
-		  </div>
-	</body>
-</html>
+<script src="https://unpkg.com/simple-jekyll-search@1.9.2/dest/simple-jekyll-search.min.js"></script>
+<script>
+  SimpleJekyllSearch({
+    searchInput: document.getElementById('search-input'),
+    resultsContainer: document.getElementById('results'),
+    json: '{{ "/search.json" | relative_url }}',
+    searchResultTemplate: '<li><a href="{url}">{title}</a> <span class="muted">— {category}</span></li>',
+    noResultsText: '<li class="muted">No result</li>',
+    fuzzy: true
+  });
+</script>

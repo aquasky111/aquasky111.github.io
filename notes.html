@@ -1,0 +1,22 @@
+---
+layout: default
+title: All notes
+---
+
+<h1>All Notes</h1>
+
+{%- assign cats = site.notes | map: "category" | uniq | sort -%}
+{%- for c in cats -%}
+  {%- if c and c != "" -%}
+  <h2 id="cat-{{ c | slugify }}">{{ c }}</h2>
+  <ul class="list">
+    {%- assign items = site.notes | where: "category", c | sort: "title" -%}
+    {%- for note in items -%}
+      <li>
+        <a href="{{ note.url | relative_url }}">{{ note.title }}</a>
+        <span class="muted">· {{ note.date | date: "%Y-%m-%d" }}</span>
+      </li>
+    {%- endfor -%}
+  </ul>
+  {%- endif -%}
+{%- endfor -%}
