@@ -1,54 +1,663 @@
----
-layout: default
-title: Home Page
----
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Markdown Repository Viewer</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-<section class="hero">
-  <h1>{{ site.title }}</h1>
-  <p class="subtitle">{{ site.description }}</p>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #f8fafc;
+            color: #334155;
+            line-height: 1.6;
+        }
 
-  <div class="search">
-    <input id="search-input" type="text" placeholder="Search Markdown ..." aria-label="Search">
-    <ul id="results"></ul>
-  </div>
-</section>
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
 
-<section class="categories">
-  <h2>Category</h2>
-  <div class="chips">
-    <a class="chip" href="/notes.html">All</a>
-    {%- assign cats = site.notes | map: "category" | uniq | sort -%}
-    {%- for c in cats -%}
-      {%- if c and c != "" -%}
-        {%- assign count = site.notes | where: "category", c | size -%}
-        <a class="chip" href="/notes.html#cat-{{ c | slugify }}">{{ c }} ({{ count }})</a>
-      {%- endif -%}
-    {%- endfor -%}
-  </div>
-</section>
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            padding: 40px 0;
+        }
 
-<section class="grid">
-  {%- assign latest = site.notes | sort: "date" | reverse -%}
-  {%- for note in latest limit:12 -%}
-    <a class="card" href="{{ note.url | relative_url }}">
-      <h3>{{ note.title }}</h3>
-      <p class="muted">
-        {{ note.category }} ·
-        {{ note.date | date: "%Y-%m-%d" }}
-      </p>
-      <p>{{ note.excerpt | strip_html | strip_newlines | truncate: 120 }}</p>
-    </a>
-  {%- endfor -%}
-</section>
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
 
-<script src="https://unpkg.com/simple-jekyll-search@1.9.2/dest/simple-jekyll-search.min.js"></script>
-<script>
-  SimpleJekyllSearch({
-    searchInput: document.getElementById('search-input'),
-    resultsContainer: document.getElementById('results'),
-    json: '{{ "/search.json" | relative_url }}',
-    searchResultTemplate: '<li><a href="{url}">{title}</a> <span class="muted">— {category}</span></li>',
-    noResultsText: '<li class="muted">No result</li>',
-    fuzzy: true
-  });
-</script>
+        .header p {
+            font-size: 1.1rem;
+            color: #64748b;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .search-container {
+            position: relative;
+            margin-bottom: 20px;
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 12px 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: border-color 0.3s ease;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+        }
+
+        .filters {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .filter-label {
+            font-weight: 500;
+            color: #374151;
+            margin-right: 8px;
+        }
+
+        .category-filter {
+            padding: 6px 12px;
+            border: 1px solid #d1d5db;
+            border-radius: 6px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        .category-filter:hover {
+            border-color: #3b82f6;
+            background: #eff6ff;
+        }
+
+        .category-filter.active {
+            background: #3b82f6;
+            color: white;
+            border-color: #3b82f6;
+        }
+
+        .content-area {
+            background: white;
+            border-radius: 12px;
+            padding: 25px;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+            border: 1px solid #e2e8f0;
+        }
+
+        .document-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+            gap: 20px;
+        }
+
+        .document-card {
+            background: #f8fafc;
+            border-radius: 8px;
+            padding: 20px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.3s ease;
+            cursor: pointer;
+        }
+
+        .document-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+            border-color: #3b82f6;
+        }
+
+        .document-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin-bottom: 8px;
+        }
+
+        .document-category {
+            display: inline-block;
+            background: #e0e7ff;
+            color: #3730a3;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .document-preview {
+            color: #64748b;
+            line-height: 1.5;
+            margin-bottom: 12px;
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .document-meta {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+            color: #6b7280;
+            padding-top: 12px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .document-size {
+            background: #e5e7eb;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .no-results {
+            text-align: center;
+            color: #6b7280;
+            font-size: 1.1rem;
+            padding: 60px 20px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #3b82f6;
+            font-size: 1.1rem;
+            padding: 40px;
+        }
+
+        .error-message {
+            text-align: center;
+            color: #dc2626;
+            font-size: 1.1rem;
+            padding: 40px 20px;
+            background: #fef2f2;
+            border: 1px solid #fecaca;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            padding: 20px;
+            overflow-y: auto;
+        }
+
+        .modal-content {
+            background: white;
+            border-radius: 12px;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 30px;
+            position: relative;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 20px;
+            right: 25px;
+            font-size: 24px;
+            cursor: pointer;
+            color: #6b7280;
+            transition: color 0.3s ease;
+        }
+
+        .modal-close:hover {
+            color: #374151;
+        }
+
+        .markdown-content {
+            line-height: 1.7;
+        }
+
+        .markdown-content h1 {
+            font-size: 2rem;
+            font-weight: 700;
+            color: #1e293b;
+            margin-bottom: 16px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        .markdown-content h2 {
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 24px 0 12px 0;
+        }
+
+        .markdown-content h3 {
+            font-size: 1.25rem;
+            font-weight: 600;
+            color: #1e293b;
+            margin: 20px 0 8px 0;
+        }
+
+        .markdown-content p {
+            margin-bottom: 16px;
+            color: #374151;
+        }
+
+        .markdown-content pre {
+            background: #f1f5f9;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            padding: 16px;
+            overflow-x: auto;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+
+        .markdown-content code {
+            background: #f1f5f9;
+            color: #1e293b;
+            padding: 2px 4px;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Consolas', 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .markdown-content pre code {
+            background: none;
+            padding: 0;
+        }
+
+        .markdown-content ul, .markdown-content ol {
+            margin: 16px 0;
+            padding-left: 24px;
+        }
+
+        .markdown-content li {
+            margin-bottom: 4px;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .document-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                justify-content: flex-start;
+            }
+            
+            .modal-content {
+                margin: 20px auto;
+                padding: 20px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Markdown Repository Viewer</h1>
+            <p>Browse and search Markdown files from this repository</p>
+        </div>
+
+        <div class="controls" id="controls">
+            <div class="search-container">
+                <input type="text" class="search-input" id="searchInput" placeholder="Search documents by title or category...">
+            </div>
+            
+            <div class="filters">
+                <span class="filter-label">Filter by category:</span>
+                <div class="category-filter active" data-category="all">All</div>
+                <div id="categoryFilters"></div>
+            </div>
+        </div>
+
+        <div class="content-area">
+            <div id="documentGrid" class="document-grid"></div>
+            <div id="noResults" class="no-results" style="display: none;">
+                No documents found matching your search criteria
+            </div>
+            <div id="loading" class="loading">
+                Loading documents from _notes folder...
+            </div>
+            <div id="errorMessage" class="error-message" style="display: none;">
+                <strong>Unable to load documents</strong><br>
+                Please make sure this HTML file is hosted in a GitHub repository with Markdown files.
+            </div>
+        </div>
+    </div>
+
+    <div id="documentModal" class="modal">
+        <div class="modal-content">
+            <span class="modal-close" onclick="closeModal()">&times;</span>
+            <div id="modalContent" class="markdown-content"></div>
+        </div>
+    </div>
+
+    <script>
+        let allDocuments = [];
+        let filteredDocuments = [];
+
+        // Auto-detect repository information from the current page
+        function getRepositoryInfo() {
+            const hostname = window.location.hostname;
+            const pathname = window.location.pathname;
+            
+            // Check if running on GitHub Pages
+            if (hostname.endsWith('.github.io')) {
+                const parts = hostname.split('.');
+                const owner = parts[0];
+                
+                // Extract repo name from pathname for GitHub Pages
+                const pathParts = pathname.split('/').filter(p => p);
+                const repo = pathParts.length > 0 ? pathParts[0] : owner + '.github.io';
+                
+                return { owner, repo };
+            }
+            
+            // For local development or other hosting, try to use meta tags or fallback
+            const metaRepo = document.querySelector('meta[name="repository"]');
+            if (metaRepo) {
+                const [owner, repo] = metaRepo.content.split('/');
+                return { owner, repo };
+            }
+            
+            // Fallback - you can customize this
+            return null;
+        }
+
+        async function loadDocuments() {
+            const repoInfo = getRepositoryInfo();
+            
+            if (!repoInfo) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').innerHTML = `
+                    <strong>Unable to auto-detect repository</strong><br>
+                    Please add a meta tag: &lt;meta name="repository" content="owner/repo-name"&gt;<br>
+                    Or host this on GitHub Pages for automatic detection.
+                `;
+                return;
+            }
+
+            try {
+                await fetchMarkdownFiles(repoInfo.owner, repoInfo.repo);
+                displayDocuments();
+                setupFilters();
+                setupSearch();
+            } catch (error) {
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('errorMessage').innerHTML = `
+                    <strong>Failed to load documents</strong><br>
+                    Repository: ${repoInfo.owner}/${repoInfo.repo}<br>
+                    Error: ${error.message}
+                `;
+                console.error('Error loading documents:', error);
+            } finally {
+                document.getElementById('loading').style.display = 'none';
+            }
+        }
+
+        async function fetchMarkdownFiles(owner, repo, path = '') {
+            const baseUrl = `https://api.github.com/repos/${owner}/${repo}/contents`;
+            const url = path ? `${baseUrl}/${path}` : baseUrl;
+
+            const response = await fetch(url);
+            if (!response.ok) {
+                throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+            }
+
+            const items = await response.json();
+            const documents = [];
+
+            for (const item of items) {
+                if (item.type === 'file' && item.name.endsWith('.md')) {
+                    try {
+                        const contentResponse = await fetch(item.download_url);
+                        const content = await contentResponse.text();
+                        
+                        const doc = {
+                            name: item.name,
+                            title: item.name.replace('.md', '').replace(/[-_]/g, ' '),
+                            category: inferCategory(item.path),
+                            content: content,
+                            preview: generatePreview(content),
+                            size: formatFileSize(item.size),
+                            path: item.path,
+                            url: item.html_url
+                        };
+                        
+                        documents.push(doc);
+                    } catch (error) {
+                        console.warn(`Failed to load content for ${item.name}:`, error);
+                    }
+                } else if (item.type === 'dir') {
+                    try {
+                        const subdocs = await fetchMarkdownFiles(owner, repo, item.path);
+                        documents.push(...subdocs);
+                    } catch (error) {
+                        console.warn(`Failed to load directory ${item.path}:`, error);
+                    }
+                }
+            }
+
+            allDocuments = documents;
+            filteredDocuments = [...allDocuments];
+        }
+
+        function inferCategory(filePath) {
+            const pathSegments = filePath.split('/');
+            if (pathSegments.length > 1) {
+                const folder = pathSegments[pathSegments.length - 2];
+                return folder.charAt(0).toUpperCase() + folder.slice(1).replace(/[-_]/g, ' ');
+            }
+            return 'Root';
+        }
+
+        function generatePreview(content) {
+            const text = content
+                .replace(/#{1,6}\s+/g, '')
+                .replace(/\*\*(.*?)\*\*/g, '$1')
+                .replace(/\*(.*?)\*/g, '$1')
+                .replace(/`(.*?)`/g, '$1')
+                .replace(/\[.*?\]\(.*?\)/g, '')
+                .replace(/!\[.*?\]\(.*?\)/g, '')
+                .split('\n')
+                .filter(line => line.trim())
+                .join(' ')
+                .substring(0, 120);
+            
+            return text + (text.length === 120 ? '...' : '');
+        }
+
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+        }
+
+        function setupFilters() {
+            const categories = [...new Set(allDocuments.map(doc => doc.category))].sort();
+            const categoryFilters = document.getElementById('categoryFilters');
+            
+            categoryFilters.innerHTML = categories.map(category => 
+                `<div class="category-filter" data-category="${category}">${category}</div>`
+            ).join('');
+
+            document.querySelectorAll('.category-filter').forEach(filter => {
+                filter.addEventListener('click', function() {
+                    document.querySelectorAll('.category-filter').forEach(f => f.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const category = this.dataset.category;
+                    filterDocuments(category);
+                });
+            });
+        }
+
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            searchInput.addEventListener('input', function() {
+                const query = this.value.toLowerCase();
+                const activeCategory = document.querySelector('.category-filter.active').dataset.category;
+                searchDocuments(query, activeCategory);
+            });
+        }
+
+        function filterDocuments(category) {
+            if (category === 'all') {
+                filteredDocuments = [...allDocuments];
+            } else {
+                filteredDocuments = allDocuments.filter(doc => doc.category === category);
+            }
+            
+            const searchQuery = document.getElementById('searchInput').value.toLowerCase();
+            if (searchQuery) {
+                searchDocuments(searchQuery, category);
+            } else {
+                displayDocuments();
+            }
+        }
+
+        function searchDocuments(query, category) {
+            let docs = category === 'all' ? allDocuments : allDocuments.filter(doc => doc.category === category);
+            
+            if (query) {
+                docs = docs.filter(doc => 
+                    doc.title.toLowerCase().includes(query) ||
+                    doc.category.toLowerCase().includes(query)
+                );
+            }
+            
+            filteredDocuments = docs;
+            displayDocuments();
+        }
+
+        function displayDocuments() {
+            const grid = document.getElementById('documentGrid');
+            const noResults = document.getElementById('noResults');
+
+            if (filteredDocuments.length === 0) {
+                grid.innerHTML = '';
+                noResults.style.display = 'block';
+                return;
+            }
+
+            noResults.style.display = 'none';
+            grid.innerHTML = filteredDocuments.map(doc => `
+                <div class="document-card" onclick="openDocument('${doc.name}')">
+                    <div class="document-category">${doc.category}</div>
+                    <h3 class="document-title">${doc.title}</h3>
+                    <p class="document-preview">${doc.preview}</p>
+                    <div class="document-meta">
+                        <span>${doc.path}</span>
+                        <span class="document-size">${doc.size}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function openDocument(fileName) {
+            const doc = allDocuments.find(d => d.name === fileName);
+            if (!doc) return;
+
+            const modal = document.getElementById('documentModal');
+            const modalContent = document.getElementById('modalContent');
+            
+            // Simple Markdown to HTML conversion
+            const html = doc.content
+                .replace(/### (.*)/g, '<h3>$1</h3>')
+                .replace(/## (.*)/g, '<h2>$1</h2>')
+                .replace(/# (.*)/g, '<h1>$1</h1>')
+                .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                .replace(/`([^`]+)`/g, '<code>$1</code>')
+                .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+                .replace(/^\* (.+)$/gm, '<li>$1</li>')
+                .replace(/(<li>.*<\/li>)/s, '<ul>$1</ul>')
+                .split('\n')
+                .map(line => {
+                    const trimmed = line.trim();
+                    if (trimmed.startsWith('<h') || trimmed.startsWith('<ul') || 
+                        trimmed.startsWith('<pre') || trimmed.startsWith('<li') || !trimmed) {
+                        return trimmed;
+                    }
+                    return `<p>${trimmed}</p>`;
+                })
+                .join('');
+
+            modalContent.innerHTML = `
+                <h1>${doc.title}</h1>
+                <div style="margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #e5e7eb; color: #6b7280; font-size: 14px;">
+                    <span class="document-category">${doc.category}</span>
+                    <span style="margin-left: 15px;">Size: ${doc.size}</span>
+                    <span style="margin-left: 15px;">Path: ${doc.path}</span>
+                </div>
+                <div>${html}</div>
+            `;
+            
+            modal.style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('documentModal').style.display = 'none';
+        }
+
+        document.getElementById('documentModal').addEventListener('click', function(e) {
+            if (e.target === this) {
+                closeModal();
+            }
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal();
+            }
+        });
+
+        // Auto-load documents when page loads
+        document.addEventListener('DOMContentLoaded', loadDocuments);
+    </script>
+</body>
+</html>

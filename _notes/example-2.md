@@ -1,11 +1,6 @@
+*Another sample of md
 
----
-title: AI sample
-category: AI
-date: 2025-09-03
-layout: note
----
-Another sample of md
+some test contents:
 - AI guide
 - Information
 - Prompts
