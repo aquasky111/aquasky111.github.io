@@ -19,7 +19,9 @@ markdown: kramdown
 
 # Navigation（Optional）
 nav:
-  - name: 首页
+  - name: Home 
     url: /
-  - name: 全部笔记
+
+  - name: All Notes
     url: /notes.html
+    
