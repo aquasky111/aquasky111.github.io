@@ -1,0 +1,12 @@
+{
+  "name": "spring-tree",
+  "private": true,
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "test": "node --test test/layout.test.mjs"
+  },
+  "dependencies": {
+    "gray-matter": "^4.0.3",
+    "marked": "^12.0.2"
+  }
+}
